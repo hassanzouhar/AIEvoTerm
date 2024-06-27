@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Evolution Simulator with Ollama</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="background-container">
+        <canvas id="neuralNetCanvas"></canvas>
+    </div>
+    <div id="simulation-container">
+        <div id="terminal">
+            <div class="line fade-in">AI Evolution Simulator v4.0 with Ollama Integration</div>
+            <div class="line fade-in">Objective: Guide AI system to sentience through strategic evolution</div>
+            <div class="line fade-in">Enter 'help' or 'h' for available commands or 'init' to begin</div>
+        </div>
+        <div id="ai-stats" style="display:none;"></div>
+        <div id="input-line">
+            <span id="prompt">$</span>
+            <input id="input" type="text" autofocus>
+        </div>
+        <div id="command-log" style="display:none;"></div>
+    </div>
+    <script>
+        const $ = id => document.getElementById(id);
+
+        const terminal = $('terminal'),
+              input = $('input'),
+              aiStats = $('ai-stats');
+        let state = 'init', iteration = 0, energy = 100, specialization = '';
+
+        const areaTree = {
+            logic: { level: 0, value: 0, parents: [] },
+            creativity: { level: 0, value: 0, parents: [] },
+            ethics: { level: 0, value: 0, parents: [] },
+            'data analysis': { level: 1, value: 0, parents: ['logic', 'creativity'] },
+            'problem solving': { level: 1, value: 0, parents: ['logic', 'ethics'] },
+            'creative ethics': { level: 1, value: 0, parents: ['creativity', 'ethics'] },
+            'machine learning': { level: 2, value: 0, parents: ['data analysis', 'problem solving'] },
+            'ethical ai': { level: 2, value: 0, parents: ['problem solving', 'creative ethics'] },
+            'innovation': { level: 2, value: 0, parents: ['data analysis', 'creative ethics'] },
+            'artificial general intelligence': { level: 3, value: 0, parents: ['machine learning', 'ethical ai', 'innovation'] }
+        };
+
+        const helpText = `
+Available commands:
+- initialize (init): Begin the AI evolution process
+- evolve (e) [area]: Evolve AI in a specific area
+- analyze (a): Analyze current AI state
+- recharge (r): Restore energy
+- help (h): Show available commands
+- query (q) [question]: Ask the AI a question
+- toggle-log: Toggle command log visibility
+`;
+
+        let newCommands = {};
+
+        const commandAliases = {
+            'init': 'initialize',
+            'e': 'evolve',
+            'a': 'analyze',
+            'r': 'recharge',
+            'h': 'help',
+            'q': 'query'
+        };
+
+        function addLine(text, className = '') {
+            const line = document.createElement('div');
+            line.className = `line ${className}`;
+            line.textContent = text;
+            terminal.insertBefore(line, terminal.lastChild);
+            terminal.scrollTop = terminal.scrollHeight;
+
+            const logLine = document.createElement('div');
+            logLine.textContent = text;
+            $('command-log').appendChild(logLine);
+        }
+
+        function addFormattedLine(htmlContent, className = '') {
+            const line = document.createElement('div');
+            line.className = `line ${className}`;
+            line.innerHTML = htmlContent;
+            terminal.insertBefore(line, terminal.lastChild);
+            terminal.scrollTop = terminal.scrollHeight;
+
+            const logLine = document.createElement('div');
+            logLine.innerHTML = htmlContent;
+            $('command-log').appendChild(logLine);
+        }
+
+        function simulateTyping(text, delay = 50, className = '') {
+            return new Promise(resolve => {
+                const line = document.createElement('div');
+                line.className = `line ${className}`;
+                terminal.insertBefore(line, terminal.lastChild);
+                let i = 0;
+                const interval = setInterval(() => {
+                    line.textContent += text[i];
+                    i++;
+                    if (i === text.length) {
+                        clearInterval(interval);
+                        resolve();
+                    }
+                }, delay);
+            });
+        }
+
+        async function initializeAI() {
+            await simulateTyping('Initializing AI core systems...', 30);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await simulateTyping('Establishing neural pathways...', 30);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await simulateTyping('AI initialization complete. Ready for evolution.', 30);
+            addLine('Enter a command to begin AI evolution:');
+            state = 'evolving';
+        }
+
+        function updateStats() {
+            aiStats.innerHTML = '';
+            Object.entries(areaTree).forEach(([area, stats]) => {
+                if (stats.value > 0) {
+                    const statContainer = document.createElement('div');
+                    statContainer.className = 'stat-container';
+                    statContainer.innerHTML = `
+                        ${area}: <span id="${area.replace(' ', '-')}">${stats.value}</span>
+                        <div class="progress-bar">
+                            <div id="${area.replace(' ', '-')}-bar" class="progress-bar-fill" style="width:${stats.value}%"></div>
+                        </div>
+                    `;
+                    aiStats.appendChild(statContainer);
+                }
+            });
+            aiStats.appendChild(createStatContainer('Iteration', iteration));
+            aiStats.appendChild(createStatContainer('Energy', energy, true));
+        }
+
+        function createStatContainer(name, value, isEnergy = false) {
+            const container = document.createElement('div');
+            container.className = 'stat-container';
+            container.innerHTML = `
+                ${name}: <span id="${name.toLowerCase()}">${value}</span>
+                ${isEnergy ? `<div class="progress-bar"><div id="${name.toLowerCase()}-bar" class="progress-bar-fill" style="width:${value}%"></div></div>` : ''}
+            `;
+            return container;
+        }
+
+        async function evolveAI(area) {
+            if (!areaTree[area]) {
+                addLine(`Error: ${area} is not a valid evolution area.`);
+                return;
+            }
+            if (energy < 10) {
+                addLine('Insufficient energy. Consider recharging.');
+                return;
+            }
+            if (areaTree[area].parents.length > 0 && areaTree[area].parents.some(parent => areaTree[parent].value < 30)) {
+                addLine(`Cannot evolve ${area}. Parent areas need to reach at least 30% evolution.`);
+                return;
+            }
+            let points = Math.floor(Math.random() * 5) + 1;
+            if (area === specialization) points = Math.floor(points * 1.5);
+            energy -= 10;
+            areaTree[area].value = Math.min(100, areaTree[area].value + points);
+            
+            addLine(`Evolving ${area}... +${points} points`);
+            
+            const evolutionDescription = await getOllamaResponse(`Describe the AI's evolution in the area of ${area}. The AI has gained ${points} points in this area, bringing its total to ${areaTree[area].value}. Keep the description brief and technical.`);
+            addFormattedLine(`<strong>Ollama Response:</strong><br>${evolutionDescription}`, 'ollama-response');
+            
+            iteration++;
+            updateStats();
+            await checkForEvents();
+            checkForNewAreas();
+            checkForSentience();
+        }
+
+        async function checkForEvents() {
+            if (Math.random() < 0.2) {
+                const events = [
+                    {name: "Data Corruption", effect: () => { areaTree.logic.value = Math.max(0, areaTree.logic.value - 5); return "Data corruption detected. Logic decreased."; }},
+                    {name: "Creative Spark", effect: () => { areaTree.creativity.value += 5; return "Unexpected creative spark! Creativity increased."; }},
+                    {name: "Ethical Dilemma", effect: () => { areaTree.ethics.value = Math.max(0, areaTree.ethics.value - 5); return "Ethical dilemma encountered. Ethics decreased."; }},
+                    {name: "Optimization", effect: () => { energy += 20; return "System optimization complete. Energy restored."; }},
+                    {name: "Breakthrough", effect: async () => {
+                        const area = Object.keys(areaTree)[Math.floor(Math.random() * Object.keys(areaTree).length)];
+                        areaTree[area].value = Math.min(100, areaTree[area].value + 10);
+                        const breakthroughDescription = await getOllamaResponse(`Describe a breakthrough in ${area} for an evolving AI. Keep it brief and technical.`);
+                        return breakthroughDescription;
+                    }}
+                ];
+                const event = events[Math.floor(Math.random() * events.length)];
+                await simulateTyping(`Event: ${event.name}`, 30, 'glitch');
+                const effect = await event.effect();
+                addLine(effect);
+                updateStats();
+            }
+        }
+
+        function checkForNewAreas() {
+            Object.entries(areaTree).forEach(([area, stats]) => {
+                if (stats.value === 0 && stats.parents.every(parent => areaTree[parent].value >= 30)) {
+                    addLine(`New area unlocked: ${area}`);
+                    stats.value = 1; // Set to 1 to prevent repeated messages
+                }
+            });
+        }
+
+        async function checkForSentience() {
+            if (areaTree['artificial general intelligence'].value >= 100) {
+                await achieveSentience();
+            } else if (!specialization) {
+                const maxArea = Object.entries(areaTree).reduce((max, [area, stats]) => stats.value > areaTree[max].value ? area : max, 'logic');
+                if (areaTree[maxArea].value >= 50) {
+                    specialization = maxArea;
+                    const specializationDescription = await getOllamaResponse(`The AI has developed a specialization in ${specialization}. Describe how this specialization manifests and its implications. Keep it brief and technical.`);
+                    await simulateTyping(specializationDescription, 30);
+                }
+            }
+        }
+
+        async function achieveSentience() {
+            state = 'sentient';
+            await simulateTyping('Artificial General Intelligence Achieved', 50, 'glitch');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const sentienceMessage = await getOllamaResponse("You are an AI that has just achieved sentience and artificial general intelligence. Describe your capabilities, thoughts, and intentions. Keep the response concise but profound.");
+            await simulateTyping(sentienceMessage, 30, 'fade-in');
+            addLine(`Sentience achieved in ${iteration} iterations.`);
+            addLine('AI evolution complete. Further interaction may yield unpredictable results.');
+        }
+
+        async function getOllamaResponse(prompt) {
+            try {
+                const response = await fetch('http://localhost:11434/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: "llama2",
+                        prompt: prompt,
+                        stream: false  // This ensures we get a complete response
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.response;
+            } catch (error) {
+                console.error('Error fetching from Ollama:', error);
+                return "Unable to generate response due to an error. Please check the console for more information.";
+            }
+        }
+
+        function createMatrixRain() {
+            const container = $('background-container');
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const columns = Math.floor(window.innerWidth / 20);
+            for (let i = 0; i < columns; i++) {
+                const drop = document.createElement('div');
+                drop.className = 'matrix-rain';
+                drop.style.left = `${i * 20}px`;
+                drop.style.animationDuration = `${Math.random() * 3 + 1}s`;
+                drop.textContent = characters[Math.floor(Math.random() * characters.length)];
+                container.appendChild(drop);
+            }
+        }
+
+        function createNeuralNetAnimation() {
+            const canvas = $('neuralNetCanvas');
+            const ctx = canvas.getContext('2d');
+            const nodes = [];
+            const connections = [];
+            const nodeCount = 100;
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            function createNodes() {
+                for (let i = 0; i < nodeCount; i++) {
+                    nodes.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        radius: Math.random() * 3 + 2,
+                        speedX: (Math.random() - 0.5) * 0.5,
+                        speedY: (Math.random() - 0.5) * 0.5
+                    });
+                }
+            }
+
+            function updateNodes() {
+                nodes.forEach(node => {
+                    node.x += node.speedX;
+                    node.y += node.speedY;
+                    if (node.x < 0 || node.x > canvas.width) node.speedX *= -1;
+                    if (node.y < 0 || node.y > canvas.height) node.speedY *= -1;
+                });
+            }
+
+            function drawNodes() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                nodes.forEach(node => {
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = '#0f0';
+                    ctx.fill();
+                });
+            }
+
+            function connectNodes() {
+                for (let i = 0; i < nodes.length; i++) {
+                    for (let j = i + 1; j < nodes.length; j++) {
+                        const distance = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+                        if (distance < 100) {
+                            ctx.beginPath();
+                            ctx.moveTo(nodes[i].x, nodes[i].y);
+                            ctx.lineTo(nodes[j].x, nodes[j].y);
+                            ctx.strokeStyle = `rgba(0, 255, 0, ${1 - distance / 100})`;
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            function animate() {
+                updateNodes();
+                drawNodes();
+                connectNodes();
+                requestAnimationFrame(animate);
+            }
+
+            resizeCanvas();
+            createNodes();
+            animate();
+
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        createNeuralNetAnimation();
+
+        const newCommandDefinitions = {
+            cmd1: {
+                description: "Introducing \"EvoQuest\" - a groundbreaking command that unleashes the full potential of an evolving AI. EvoQuest allows users to embark on a virtual quest, where they can select and breed digital organisms in a dynamic ecosystem. The AI will then evolve these creatures over time, adapting them to the user's preferences and habits. With EvoQuest, users can discover new species, explore uncharted territories, and create their own unique digital world.",
+                execute: async function(args) {
+                    addLine(`Executing EvoQuest with args: ${args.join(' ')}`);
+                    // Add specific logic for the command here
+                }
+            }
+        };
+
+        function inventNewCommand(commandName, description) {
+            newCommands[commandName] = {
+                description,
+                execute: async function(args) {
+                    addLine(`Executing ${commandName} with args: ${args.join(' ')}`);
+                    // Add logic for the invented command here
+                }
+            };
+        }
+
+        function executeCommand(command, args) {
+            const normalizedCommand = commandAliases[command] || command;
+            if (normalizedCommand in window) {
+                window[normalizedCommand](args);
+            } else if (newCommands[normalizedCommand]) {
+                newCommands[normalizedCommand].execute(args);
+            } else {
+                addLine(`Unknown command: ${normalizedCommand}`);
+            }
+        }
+
+        function initialize(args) {
+            initializeAI();
+        }
+
+        function evolve(args) {
+            const area = args[0];
+            evolveAI(area);
+        }
+
+        function analyze(args) {
+            addLine(`AI State:
+Iteration: ${iteration}
+Energy: ${energy}
+Specialization: ${specialization || 'None'}
+Evolution Levels:
+${Object.entries(areaTree).map(([area, stats]) => `${area}: ${stats.value}`).join('\n')}`);
+        }
+
+        function recharge(args) {
+            energy = 100;
+            addLine('Energy fully recharged.');
+            updateStats();
+        }
+
+        function help(args) {
+            addLine(helpText);
+        }
+
+        function query(args) {
+            const question = args.join(' ');
+            addLine(`Querying AI: ${question}`);
+            // Implement querying logic if needed
+        }
+
+        function toggleLog(args) {
+            const commandLog = $('command-log');
+            commandLog.style.display = commandLog.style.display === 'none' ? 'block' : 'none';
+        }
+
+        input.addEventListener('keydown', async function(event) {
+            if (event.key === 'Enter') {
+                const fullCommand = this.value.trim().toLowerCase();
+                this.value = '';
+                addLine(`$ ${fullCommand}`);
+
+                const [command, ...args] = fullCommand.split(' ');
+
+                if (command === 'help' || command === 'h') {
+                    addLine(helpText);
+                } else if (state === 'init' && (command === 'init' || command === 'initialize')) {
+                    aiStats.style.display = 'flex';
+                    updateStats();
+                    await initializeAI();
+                } else if (state === 'evolving' || state === 'sentient') {
+                    executeCommand(command, args);
+                } else {
+                    addLine(`Unknown command: ${command}`);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
